@@ -48,13 +48,13 @@ resource "aws_lb_listener" "ecs_alb_https_listener" {
 }
 
 resource "aws_lb_target_group" "ecs_alb_target_group" {
-  name     = join("-", [var.ecs_cluster_name, "ALB-target-group"])
+  name     = join("-", [var.ecs_cluster_name, "ALB-TG"])
   port     = 80
   protocol = "HTTP"
   vpc_id   = data.terraform_remote_state.infrasturcture.outputs.vpc_id
 
   tags = {
-    Name = join("-", [var.ecs_cluster_name, "ALB-target-group"])
+    Name = join("-", [var.ecs_cluster_name, "ALB-TG"])
   }
 }
 
