@@ -1,7 +1,7 @@
 #!/bin/sh
 
 REGION="us-east-1"
-AWS_ACCOUNT_ID="685670624701"
+AWS_ACCOUNT_ID="${YourAccountID}"
 SERVICE_NAME="railsapp"
 SERVICE_TAG="v1"
 ECR_REPO_URL="${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/${SERVICE_NAME}"
