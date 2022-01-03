@@ -2,14 +2,12 @@
     {
         "name": "${task_definition_name}",
         "image": "${docker_image_url}",
-        "essential": true,
-        "environment": [{
-            "name": "rails_profile_active",
-            "value": "${rails_profile}"
-        }
-        ],
+        "cpu": 512,
+        "memory": 1024,
+        "networkMode": "awsvpc",
         "portMappings": [{
-            "containerPort": "${docker_container_port}"
+            "containerPort": 80,
+            "hostPort": 80
         }],
         "logConfiguration": {
             "logDriver": "awslogs",

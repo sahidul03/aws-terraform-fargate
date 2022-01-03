@@ -1,7 +1,7 @@
 #!/bin/sh
 
 REGION="us-east-1"
-AWS_ACCOUNT_ID="${YourAccountID}"
+AWS_ACCOUNT_ID="XXXX"
 SERVICE_NAME="railsapp"
 SERVICE_TAG="v1"
 ECR_REPO_URL="${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/${SERVICE_NAME}"
@@ -33,13 +33,16 @@ elif [ "$1" = "dockerize" ];then
 elif [ "$1" = "plan" ];then
     cd infrastructure
     terraform init -backend-config="app-prod.config"
-    terraform plan -var-file="production.tfvars" -var "docker_image_url=$ECR_REPO_URL:$SERVICE_TAG"
+    terraform plan -var-file="production.tfvars"
+#    terraform plan -var-file="production.tfvars" -var "docker_image_url=$ECR_REPO_URL:$SERVICE_TAG"
 elif [ "$1" = "deploy" ];then
     cd infrastructure
     terraform init -backend-config="app-prod.config"
-    terraform apply -var-file="production.tfvars" -var "docker_image_url=$ECR_REPO_URL:$SERVICE_TAG" -auto-approve
+    terraform apply -var-file="production.tfvars" -auto-approve
+#    terraform apply -var-file="production.tfvars" -var "docker_image_url=$ECR_REPO_URL:$SERVICE_TAG" -auto-approve
 elif [ "$1" = "destroy" ];then
     cd infrastructure
     terraform init -backend-config="app-prod.config"
-    terraform destroy -var-file="production.tfvars" -var "docker_image_url=$ECR_REPO_URL:$SERVICE_TAG" -auto-approve
+    terraform destroy -var-file="production.tfvars" -auto-approve
+#    terraform destroy -var-file="production.tfvars" -var "docker_image_url=$ECR_REPO_URL:$SERVICE_TAG" -auto-approve
 fi

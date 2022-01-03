@@ -19,7 +19,7 @@ data "terraform_remote_state" "platform" {
 
 
 data "template_file" "ecs_task_definition_template" {
-  template = file("task_definition.json")
+  template = file("./task_definition.json.tpl")
 
   vars = {
     task_definition_name  = var.ecs_service_name
@@ -27,7 +27,6 @@ data "template_file" "ecs_task_definition_template" {
     docker_image_url      = var.docker_image_url
     memory                = var.memory
     docker_container_port = var.docker_container_port
-    rails_profile         = var.rails_profile
     region                = var.region
   }
 }
@@ -46,42 +45,40 @@ resource "aws_ecs_task_definition" "rails_task_definition" {
 resource "aws_iam_role" "fargate_iam_role" {
   name               = "${var.ecs_service_name}-IAM-Role"
   assume_role_policy = <<EOF
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect" = "Allow",
-        "Principal": {
-          "Service": ["ecs.amazonaws.com", "ecs-tasks.amazonaws.com"]
-        },
-        "Action": "sts:AssumeRole"
-      }
-    ]
-  }
-  EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": ["ecs.amazonaws.com", "ecs-tasks.amazonaws.com"]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
 }
 
-resource "aws_ima_role_policy" "fargate_iam_role_policy" {
-  name   = "${var.ecs_service_name}-IAM-Role-Policy"
-  role   = aws_iam_role.fargate_iam_role.id
-  policy = <<EOF
-  {
-    "Version": "2012-10-17",
-    "Statement": [
+resource "aws_iam_role_policy" "fargate_iam_role_policy" {
+  name = "${var.ecs_service_name}-IAM-Role-Policy"
+  role = aws_iam_role.fargate_iam_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
       {
-        "Effect" = "Allow",
-        "Action": [
+        Action = [
           "ecs:*",
           "ecr:*",
           "logs:*",
           "cloudwatch:*",
-          "elasticloadbalancing:*"
-        ],
-        "Resource": "*"
-      }
+          "elasticloadbalancing:*",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
     ]
-  }
-  EOF
+  })
 }
 
 resource "aws_security_group" "app_security_group" {
@@ -90,8 +87,8 @@ resource "aws_security_group" "app_security_group" {
   vpc_id      = data.terraform_remote_state.platform.outputs.vpc_id
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [data.terraform_remote_state.platform.outputs.vpc_cidr_block]
   }
@@ -116,7 +113,7 @@ resource "aws_lb_target_group" "ecs_app_target_group" {
   target_type = "ip"
 
   health_check {
-    path                = "/actuator/path"
+    path                = "/"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 60
@@ -133,7 +130,7 @@ resource "aws_lb_target_group" "ecs_app_target_group" {
 resource "aws_ecs_service" "ecs_service" {
   name            = var.ecs_service_name
   cluster         = data.terraform_remote_state.platform.outputs.ecs_cluster_name
-  task_definition = var.ecs_service_name
+  task_definition = aws_ecs_task_definition.rails_task_definition.arn
   desired_count   = var.desired_task_number
   launch_type     = "FARGATE"
 
