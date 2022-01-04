@@ -32,12 +32,26 @@ resource "aws_lb" "ecs_cluster_alb" {
   }
 }
 
+# resource "aws_lb_listener" "ecs_alb_http_listener" {
+#   load_balancer_arn = aws_lb.ecs_cluster_alb.arn
+#   port              = 80
+#   protocol          = "HTTP"
+#   default_action {
+#     type = "redirect"
+#     redirect {
+#       port        = 443
+#       protocol    = "HTTPS"
+#       status_code = "HTTP_301"
+#     }
+#   }
+# }
+
 resource "aws_lb_listener" "ecs_alb_https_listener" {
   load_balancer_arn = aws_lb.ecs_cluster_alb.arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = aws_acm_certificate.ecs_domain_certificate.arn
+  certificate_arn   = aws_acm_certificate.demo_sahid.arn
 
   default_action {
     type             = "forward"
@@ -59,17 +73,17 @@ resource "aws_lb_target_group" "ecs_alb_target_group" {
 }
 
 
-resource "aws_route53_record" "ecs_load_balancer_record" {
-  name    = "www.${var.ecs_domain_name}"
-  type    = "A"
-  zone_id = data.aws_route53_zone.ecs_domain_name.zone_id
+# resource "aws_route53_record" "ecs_load_balancer_record" {
+#   name    = "www.${var.ecs_domain_name}"
+#   type    = "A"
+#   zone_id = data.aws_route53_zone.ecs_domain_name.zone_id
 
-  alias {
-    evaluate_target_health = false
-    name                   = aws_lb.ecs_cluster_alb.dns_name
-    zone_id                = aws_lb.ecs_cluster_alb.zone_id
-  }
-}
+#   alias {
+#     evaluate_target_health = false
+#     name                   = aws_lb.ecs_cluster_alb.dns_name
+#     zone_id                = aws_lb.ecs_cluster_alb.zone_id
+#   }
+# }
 
 resource "aws_iam_role" "ecs_cluster_role_name" {
   name = join("-", [var.ecs_cluster_name, "Iam-Role"])

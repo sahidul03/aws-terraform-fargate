@@ -1,35 +1,47 @@
-resource "aws_acm_certificate" "ecs_domain_certificate" {
-  domain_name       = "www.${var.ecs_domain_name}"
-  validation_method = "DNS"
-
-  tags = {
-    Environment = "Production"
-    Name        = join("-", [var.ecs_cluster_name, "domain_certificates"])
-  }
-}
-
 data "aws_route53_zone" "ecs_domain_name" {
   name         = var.ecs_domain_name
 }
 
-resource "aws_route53_record" "ecs_certificate_validation_record" {
-  for_each = {
-    for dvo in aws_acm_certificate.ecs_domain_certificate.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
+resource "aws_route53_record" "demo_sahid" {
+  zone_id = data.aws_route53_zone.ecs_domain_name.zone_id
+  name    = join(".", ["demo", var.ecs_domain_name])
+  type    = "A"
+  alias {
+    name                   = aws_lb.ecs_cluster_alb.dns_name
+    zone_id                = aws_lb.ecs_cluster_alb.zone_id
+    evaluate_target_health = false
   }
-
-  zone_id         = data.aws_route53_zone.ecs_domain_name.zone_id
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 500
-  type            = each.value.type
-  allow_overwrite = true
+  depends_on = [
+    aws_lb.ecs_cluster_alb
+  ]
 }
 
-resource "aws_acm_certificate_validation" "ecs_domain_certificate_validation" {
-  certificate_arn         = aws_acm_certificate.ecs_domain_certificate.arn
-  validation_record_fqdns = [for record in aws_route53_record.ecs_certificate_validation_record : record.fqdn]
+resource "aws_acm_certificate" "demo_sahid" {
+  domain_name               = aws_route53_record.demo_sahid.name
+  subject_alternative_names = ["*.${aws_route53_record.demo_sahid.name}"]
+  validation_method         = "DNS"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "demo_sahid_certificate" {
+  for_each = {
+    for option in aws_acm_certificate.demo_sahid.domain_validation_options : option.domain_name => {
+      name   = option.resource_record_name
+      record = option.resource_record_value
+      type   = option.resource_record_type
+    }
+  }
+  zone_id         = data.aws_route53_zone.ecs_domain_name.zone_id
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  type            = each.value.type
+  ttl             = 60
+}
+
+resource "aws_acm_certificate_validation" "demo_sahid_validation_certificate" {
+  certificate_arn         = aws_acm_certificate.demo_sahid.arn
+  validation_record_fqdns = [for record in aws_route53_record.demo_sahid_certificate : record.fqdn]
 }
